@@ -1,0 +1,18 @@
+# =============================================================================
+# terraform.tfvars のサンプル
+# =============================================================================
+# このファイルを terraform.tfvars にコピーして値を編集してください:
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# terraform.tfvars は .gitignore に含まれているため、
+# 機密情報を含めても安全です。
+# =============================================================================
+
+project_name = "handson"
+bucket_name  = "data"
+environment  = "dev"
+
+tags = {
+  Owner = "your-name"
+  Team  = "infrastructure"
+}

@@ -16,6 +16,9 @@ crash.*.log
 *.tfvars
 *.tfvars.json
 
+# But track example tfvars files (these are templates, not secrets)
+!*.tfvars.example
+
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
 override.tf
@@ -35,3 +38,20 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Terragrunt
+.terragrunt-cache/
+terragrunt-debug.tfvars.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# LocalStack
+volume/
