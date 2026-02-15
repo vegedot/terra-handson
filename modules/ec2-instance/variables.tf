@@ -47,6 +47,16 @@ variable "allowed_ssh_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+# IAMマネージドポリシーARN
+variable "iam_policy_arns" {
+  description = "IAMロールにアタッチするマネージドポリシーARNのリスト"
+  type        = list(string)
+  default = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+  ]
+}
+
 # 環境名
 variable "environment" {
   description = "環境名（例: dev, staging, prod）"
