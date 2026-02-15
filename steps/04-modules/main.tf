@@ -34,6 +34,7 @@ provider "aws" {
   #   s3       = "http://localhost:4566"
   #   sts      = "http://localhost:4566"
   #   ec2      = "http://localhost:4566"
+  #   iam      = "http://localhost:4566"
   #   dynamodb = "http://localhost:4566"
   # }
 }
@@ -61,7 +62,7 @@ module "ec2" {
   ami_id        = var.ami_id
   instance_type = var.instance_type
   vpc_id        = module.vpc.vpc_id
-  subnet_id     = module.vpc.public_subnet_ids[0]
+  subnet_id     = module.vpc.private_subnet_ids[0] # 最初のプライベートサブネットに配置
   environment   = var.environment
   tags          = var.tags
 }
