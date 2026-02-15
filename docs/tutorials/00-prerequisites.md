@@ -65,10 +65,26 @@ terraform version
 
 ### Windows
 
-```powershell
-# Chocolatey を使用する場合
-choco install terragrunt
+[GitHub Releases](https://github.com/gruntwork-io/terragrunt/releases) から `terragrunt_windows_386.exe` をダウンロードして手動でインストールします。
+
+1. [GitHub Releases](https://github.com/gruntwork-io/terragrunt/releases) から `terragrunt_windows_386.exe` をダウンロード
+2. 任意のフォルダ（例: `C:\tools\terragrunt`）に配置し、`terragrunt.exe` にリネーム
+3. 配置先フォルダを環境変数 PATH に追加
+
+コマンドプロンプトから以下を実行して PATH を追加します。
+
+```cmd
+rem 1. 現在の PATH を確認
+echo %PATH%
+
+rem 2. PATH に追加（配置先フォルダを指定）
+setx PATH "%PATH%;C:\tools\terragrunt"
+
+rem 3. コマンドプロンプトを再起動後、PATH が追加されたことを確認
+echo %PATH%
 ```
+
+> **注意**: `setx` の反映にはコマンドプロンプトの再起動が必要です。
 
 ### macOS
 
