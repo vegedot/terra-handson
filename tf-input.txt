@@ -1,0 +1,3 @@
+IAMRoleARN=arn:aws:iam::334678299258:role/test-komatsu-20251211
+AwsProfile=tf
+AwsRegion=ap-northeast-1
