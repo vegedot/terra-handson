@@ -33,6 +33,13 @@ variable "subnet_id" {
   type        = string
 }
 
+# パブリックIPアドレスの関連付け
+variable "associate_public_ip_address" {
+  description = "パブリックIPアドレスを関連付けるかどうか"
+  type        = bool
+  default     = false
+}
+
 # SSH接続を許可するCIDRブロック
 variable "allowed_ssh_cidrs" {
   description = "SSH接続を許可するCIDRブロックのリスト"
