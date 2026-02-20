@@ -1,0 +1,49 @@
+# =============================================================================
+# terraform.tfvars の設定例
+# このファイルをコピーして terraform.tfvars として使用してください:
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# 注意: terraform.tfvars はパスワードを含むため .gitignore に追加してください
+# =============================================================================
+
+project_name = "terra-handson"
+environment  = "dev"
+region       = "ap-northeast-1"
+
+# --- ネットワーク設定 ---
+vpc_cidr                 = "10.0.0.0/16"
+availability_zones       = ["ap-northeast-1a", "ap-northeast-1c"]
+public_subnet_cidrs      = ["10.0.1.0/24", "10.0.2.0/24"]
+private_app_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
+private_db_subnet_cidrs  = ["10.0.30.0/24", "10.0.40.0/24"]
+
+# --- WebLogic / ECS設定 ---
+# weblogic_image_uri は terraform apply 前に ECR にイメージをpushしてから設定する
+# 手順: README.md の「WebLogicイメージの準備」セクションを参照
+# 例:
+# weblogic_image_uri = "123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/terra-handson-dev-weblogic:14.1.1"
+
+weblogic_admin_username = "weblogic"
+weblogic_admin_password = "ChangeMe123!" # 必ず変更してください
+
+weblogic_cpu           = 2048 # 2 vCPU
+weblogic_memory        = 4096 # 4 GB
+weblogic_admin_port    = 7001
+weblogic_desired_count = 1
+
+# --- RDS Oracle設定 ---
+db_username       = "weblogic"
+db_name           = "WLSDB"
+db_instance_class = "db.t3.small" # Oracle SE2 LI の最小インスタンス。本番では db.t3.medium 以上を推奨
+
+# 利用可能なバージョンの確認:
+# aws rds describe-db-engine-versions --engine oracle-se2 --query 'DBEngineVersions[*].EngineVersion'
+db_engine_version    = "19.0.0.0.ru-2024-10.rur-2024-10.r1"
+db_allocated_storage = 50
+db_multi_az          = false # 本番環境では true を推奨
+
+# --- 追加タグ ---
+tags = {
+  Owner   = "your-name"
+  Purpose = "learning"
+}
