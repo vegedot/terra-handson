@@ -198,9 +198,3 @@ aws ec2 describe-security-groups \
   --query "SecurityGroups[].GroupId" \
   --output text --region $REGION
 
-# EC2インスタンスの一覧取得
-aws ec2 describe-instances \
-  --filters "Name=vpc-id,Values=$VPC_ID" \
-  --query "Reservations[].Instances[].InstanceId" \
-  --output text --region $REGION
-```
