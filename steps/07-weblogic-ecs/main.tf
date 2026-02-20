@@ -9,6 +9,13 @@
 #   - Secrets Manager で機密情報（パスワード等）を安全に管理する
 #   - NAT Gateway でプライベートサブネットからのアウトバウンド通信を実現する
 #
+# 使用コミュニティモジュール（https://github.com/terraform-aws-modules）:
+#   - terraform-aws-modules/vpc/aws          → vpc.tf
+#   - terraform-aws-modules/security-group/aws → security_groups.tf
+#   - terraform-aws-modules/alb/aws          → alb.tf
+#   - terraform-aws-modules/rds/aws          → rds.tf
+#   - terraform-aws-modules/ecs/aws          → ecs.tf
+#
 # アーキテクチャ:
 #   Internet → ALB（パブリックサブネット）→ ECS/WebLogic（プライベート App サブネット）
 #                                               ↓

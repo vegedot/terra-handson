@@ -3,7 +3,11 @@
     "allow": [
       "Bash(for dir in \"E:\\\\dev\\\\terra-handson\\\\steps\\\\01-hello-terraform\" \"E:\\\\dev\\\\terra-handson\\\\steps\\\\02-variables-and-outputs\" \"E:\\\\dev\\\\terra-handson\\\\steps\\\\03-state-and-backend\" \"E:\\\\dev\\\\terra-handson\\\\steps\\\\04-modules\" \"E:\\\\dev\\\\terra-handson\\\\steps\\\\05-terragrunt-basics\" \"E:\\\\dev\\\\terra-handson\\\\steps\\\\06-terragrunt-multi-env\" \"E:\\\\dev\\\\terra-handson\\\\modules\\\\s3-bucket\" \"E:\\\\dev\\\\terra-handson\\\\modules\\\\vpc\" \"E:\\\\dev\\\\terra-handson\\\\modules\\\\ec2-instance\" \"E:\\\\dev\\\\terra-handson\\\\environments\\\\dev\" \"E:\\\\dev\\\\terra-handson\\\\environments\\\\staging\" \"E:\\\\dev\\\\terra-handson\\\\environments\\\\prod\")",
       "Bash(do touch \"$dir/.gitkeep\")",
-      "Bash(done)"
+      "Bash(done)",
+      "WebFetch(domain:aws.amazon.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(terraform init:*)",
+      "Bash(terraform validate:*)"
     ]
   }
 }

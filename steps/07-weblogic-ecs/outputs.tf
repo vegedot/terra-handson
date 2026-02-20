@@ -18,7 +18,12 @@ output "ecr_repository_url" {
 
 output "ecs_cluster_name" {
   description = "ECSクラスター名"
-  value       = aws_ecs_cluster.this.name
+  value       = module.ecs_cluster.cluster_name
+}
+
+output "ecs_cluster_arn" {
+  description = "ECSクラスターARN"
+  value       = module.ecs_cluster.cluster_arn
 }
 
 output "ecs_service_name" {
@@ -37,12 +42,12 @@ output "cloudwatch_log_group" {
 
 output "alb_dns_name" {
   description = "ALBのDNS名"
-  value       = aws_lb.weblogic.dns_name
+  value       = module.alb.dns_name
 }
 
 output "weblogic_console_url" {
   description = "WebLogic管理コンソールURL（ECSタスク起動後にアクセス可能）"
-  value       = "http://${aws_lb.weblogic.dns_name}/console"
+  value       = "http://${module.alb.dns_name}/console"
 }
 
 # -----------------------------------------------------------------------------
@@ -51,23 +56,42 @@ output "weblogic_console_url" {
 
 output "rds_endpoint" {
   description = "RDS Oracleのエンドポイントホスト名（ECSコンテナ内からのみ到達可能）"
-  value       = aws_db_instance.oracle.address
+  value       = module.rds.db_instance_address
 }
 
 output "rds_port" {
   description = "RDS Oracleのポート番号"
-  value       = aws_db_instance.oracle.port
+  value       = module.rds.db_instance_port
 }
 
 output "rds_db_name" {
   description = "Oracle DB名（SID）"
-  value       = aws_db_instance.oracle.db_name
+  value       = module.rds.db_instance_name
 }
 
 output "rds_secret_arn" {
   description = "RDS接続情報が保存されたSecrets Manager ARN（パスワード確認はAWSコンソールで）"
   value       = aws_secretsmanager_secret.rds_password.arn
   sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# 踏み台EC2
+# -----------------------------------------------------------------------------
+
+output "bastion_instance_id" {
+  description = "踏み台EC2のインスタンスID（SSM接続コマンドで使用）"
+  value       = aws_instance.bastion.id
+}
+
+output "bastion_connect_command" {
+  description = "踏み台へのRDP用SSMポートフォワーディングコマンド"
+  value       = "aws ssm start-session --target ${aws_instance.bastion.id} --document-name AWS-StartPortForwardingSession --parameters '{\"portNumber\":[\"3389\"],\"localPortNumber\":[\"13389\"]}'"
+}
+
+output "weblogic_internal_url" {
+  description = "踏み台EC2のブラウザから開くWebLogic管理コンソールURL（Internal ALB経由）"
+  value       = "http://${module.alb.dns_name}/console"
 }
 
 # -----------------------------------------------------------------------------
@@ -81,5 +105,5 @@ output "vpc_id" {
 
 output "nat_gateway_ip" {
   description = "NAT GatewayのパブリックIP（ファイアウォールのホワイトリスト登録に使用）"
-  value       = aws_eip.nat.public_ip
+  value       = module.vpc.nat_public_ips[0]
 }

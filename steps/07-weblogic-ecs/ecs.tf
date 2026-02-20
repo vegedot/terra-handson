@@ -1,28 +1,41 @@
 # =============================================================================
 # ECS (Elastic Container Service) - Fargate
-# WebLogicコンテナの実行環境
 # =============================================================================
-# 構成要素:
-#   - CloudWatch Logs グループ: コンテナログの収集先
-#   - ECS クラスター: タスクの実行環境
-#   - ECS タスク定義: コンテナ仕様（イメージ・CPU/Memory・環境変数・ポート）
-#   - ECS サービス: タスクの常時稼働を保証し、ALBと連携
+# クラスターの作成に terraform-aws-modules/ecs/aws を使用します。
+# タスク定義とサービスは直接リソースとして定義し、設定内容を明示的にします。
 # =============================================================================
 
 # CloudWatch Logsグループ（WebLogicのログ出力先）
 resource "aws_cloudwatch_log_group" "weblogic" {
   name              = "/ecs/${local.name_prefix}/weblogic"
-  retention_in_days = 30 # 30日間ログを保持
+  retention_in_days = 30
 
   tags = local.common_tags
 }
 
-# ECSクラスター
-resource "aws_ecs_cluster" "this" {
-  name = "${local.name_prefix}-cluster"
+# =============================================================================
+# ECS クラスター
+# terraform-aws-modules/ecs/aws でクラスターと Fargate 設定を管理
+# =============================================================================
 
-  # Container Insights を有効化（パフォーマンスメトリクスの可視化）
-  setting {
+module "ecs_cluster" {
+  source  = "terraform-aws-modules/ecs/aws"
+  version = "~> 5.0"
+
+  cluster_name = "${local.name_prefix}-cluster"
+
+  # Fargate キャパシティプロバイダー
+  fargate_capacity_providers = {
+    FARGATE = {
+      default_capacity_provider_strategy = {
+        weight = 100
+        base   = 1
+      }
+    }
+  }
+
+  # Container Insights を有効化（クラスターレベルのメトリクス収集）
+  cluster_settings = {
     name  = "containerInsights"
     value = "enabled"
   }
@@ -31,19 +44,19 @@ resource "aws_ecs_cluster" "this" {
 }
 
 # =============================================================================
-# ECSタスク定義（WebLogic）
-# コンテナの仕様を定義する「設計図」です。実際の実行はECSサービスが行います。
+# ECS タスク定義（WebLogic）
+# コンテナの仕様を定義する「設計図」
 # =============================================================================
 
 resource "aws_ecs_task_definition" "weblogic" {
   family                   = "${local.name_prefix}-weblogic"
   cpu                      = var.weblogic_cpu    # 2048 = 2 vCPU
   memory                   = var.weblogic_memory # 4096 = 4 GB
-  network_mode             = "awsvpc"            # Fargateには awsvpc が必須
+  network_mode             = "awsvpc"            # Fargate には awsvpc が必須
   requires_compatibilities = ["FARGATE"]
 
-  execution_role_arn = aws_iam_role.ecs_task_execution.arn # エージェント用ロール
-  task_role_arn      = aws_iam_role.ecs_task.arn           # アプリ用ロール
+  execution_role_arn = aws_iam_role.ecs_task_execution.arn
+  task_role_arn      = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -59,38 +72,19 @@ resource "aws_ecs_task_definition" "weblogic" {
         }
       ]
 
-      # 非機密の環境変数（コンテナ起動時に注入）
-      # WebLogicイメージのDockerfileでこれらの変数を参照するよう実装してください
+      # 非機密の環境変数
       environment = [
-        {
-          name  = "DOMAIN_NAME"
-          value = "base_domain"
-        },
-        {
-          name  = "ADMIN_LISTEN_PORT"
-          value = tostring(var.weblogic_admin_port)
-        },
-        # Oracle DB接続情報（ホスト・ポート・DB名は非機密として環境変数に設定）
-        {
-          name  = "DB_HOST"
-          value = aws_db_instance.oracle.address
-        },
-        {
-          name  = "DB_PORT"
-          value = "1521"
-        },
-        {
-          name  = "DB_NAME"
-          value = var.db_name
-        },
-        {
-          name  = "DB_USERNAME"
-          value = var.db_username
-        },
+        { name = "DOMAIN_NAME", value = "base_domain" },
+        { name = "ADMIN_LISTEN_PORT", value = tostring(var.weblogic_admin_port) },
+        # RDS 接続情報（ホスト・ポート・DB名は非機密として環境変数に設定）
+        { name = "DB_HOST", value = module.rds.db_instance_address },
+        { name = "DB_PORT", value = "1521" },
+        { name = "DB_NAME", value = var.db_name },
+        { name = "DB_USERNAME", value = var.db_username },
       ]
 
-      # 機密情報はSecrets Managerから動的に取得（コンテナ内でも平文が見える点に注意）
-      # JSON形式のシークレットから特定キーを "<arn>:<json-key>::" 形式で参照できる
+      # 機密情報は Secrets Manager から動的取得
+      # "<ARN>:<JSON-KEY>::" 形式で JSON シークレットの特定キーを参照できる
       secrets = [
         {
           name      = "ADMIN_USERNAME"
@@ -106,7 +100,6 @@ resource "aws_ecs_task_definition" "weblogic" {
         },
       ]
 
-      # ログドライバー設定（awslogs = CloudWatch Logsに送信）
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -116,18 +109,12 @@ resource "aws_ecs_task_definition" "weblogic" {
         }
       }
 
-      # ヘルスチェック
-      # WebLogicの起動には時間がかかるため startPeriod を長めに設定
       healthCheck = {
-        command = [
-          "CMD-SHELL",
-          # curl が 200/302/401 を返せば起動完了とみなす
-          "curl -s -o /dev/null -w '%%{http_code}' http://localhost:${tostring(var.weblogic_admin_port)}/console | grep -qE '^(200|302|401)$' || exit 1"
-        ]
+        command     = ["CMD-SHELL", "curl -s -o /dev/null -w '%%{http_code}' http://localhost:${tostring(var.weblogic_admin_port)}/console | grep -qE '^(200|302|401)$' || exit 1"]
         interval    = 30
         timeout     = 10
         retries     = 5
-        startPeriod = 180 # WebLogicは起動に3分程度かかる場合がある
+        startPeriod = 180 # WebLogicの起動には3分程度かかる場合がある
       }
     }
   ])
@@ -136,38 +123,36 @@ resource "aws_ecs_task_definition" "weblogic" {
 }
 
 # =============================================================================
-# ECSサービス（WebLogic）
-# タスク定義をもとに指定数のコンテナを常時起動し、ALBと連携する
+# ECS サービス（WebLogic）
+# タスクの常時稼働とALBとの紐付けを管理
 # =============================================================================
 
 resource "aws_ecs_service" "weblogic" {
   name            = "${local.name_prefix}-weblogic"
-  cluster         = aws_ecs_cluster.this.id
+  cluster         = module.ecs_cluster.cluster_arn
   task_definition = aws_ecs_task_definition.weblogic.arn
   desired_count   = var.weblogic_desired_count
   launch_type     = "FARGATE"
 
-  # タスク定義変更時に既存タスクを強制的に再デプロイ
   force_new_deployment = true
 
   network_configuration {
-    subnets          = module.vpc.private_subnet_ids   # プライベートAppサブネット
-    security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false # プライベートサブネット＋NAT Gatewayを使用
+    subnets          = module.vpc.private_subnets
+    security_groups  = [module.ecs_sg.security_group_id]
+    assign_public_ip = false
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.weblogic_admin.arn
+    target_group_arn = module.alb.target_groups["weblogic"].arn
     container_name   = "weblogic"
     container_port   = var.weblogic_admin_port
   }
 
-  # ALBリスナー・IAMロール・RDSが作成されてからサービスを起動する
   depends_on = [
-    aws_lb_listener.http,
+    module.alb,
     aws_iam_role_policy_attachment.ecs_task_execution,
     aws_iam_role_policy.ecs_secrets_access,
-    aws_db_instance.oracle,
+    module.rds,
     aws_secretsmanager_secret_version.rds_password,
     aws_secretsmanager_secret_version.weblogic_admin,
   ]

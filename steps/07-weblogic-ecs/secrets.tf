@@ -40,13 +40,13 @@ resource "aws_secretsmanager_secret_version" "rds_password" {
     username = var.db_username
     password = random_password.rds.result
     engine   = "oracle"
-    host     = aws_db_instance.oracle.address
-    port     = tostring(aws_db_instance.oracle.port)
+    host     = module.rds.db_instance_address
+    port     = tostring(module.rds.db_instance_port)
     dbname   = var.db_name
   })
 
   # RDSインスタンスが作成されてからエンドポイントを設定する
-  depends_on = [aws_db_instance.oracle]
+  depends_on = [module.rds]
 }
 
 # -----------------------------------------------------------------------------
