@@ -180,3 +180,27 @@ terraform destroy
 - **Auto Scaling**: ECSサービスにApplication Auto Scalingを設定する
 - **カスタムWebLogicドメイン設定**: WLST（WebLogic Scripting Tool）でJDBCデータソースを設定する
 - **マルチAZ化**: `db_multi_az = true` でRDSをHA構成にする
+
+##
+```
+VPC_ID="vpc-xxxxxxxxxxxxxxxxx"
+REGION="ap-northeast-1"
+
+# Subnetの一覧取得
+aws ec2 describe-subnets \
+  --filters "Name=vpc-id,Values=$VPC_ID" \
+  --query "Subnets[].SubnetId" \
+  --output text --region $REGION
+
+# Security Groupの一覧取得
+aws ec2 describe-security-groups \
+  --filters "Name=vpc-id,Values=$VPC_ID" \
+  --query "SecurityGroups[].GroupId" \
+  --output text --region $REGION
+
+# EC2インスタンスの一覧取得
+aws ec2 describe-instances \
+  --filters "Name=vpc-id,Values=$VPC_ID" \
+  --query "Reservations[].Instances[].InstanceId" \
+  --output text --region $REGION
+```
