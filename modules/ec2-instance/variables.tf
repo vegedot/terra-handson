@@ -33,11 +33,28 @@ variable "subnet_id" {
   type        = string
 }
 
+# パブリックIPアドレスの関連付け
+variable "associate_public_ip_address" {
+  description = "パブリックIPアドレスを関連付けるかどうか"
+  type        = bool
+  default     = false
+}
+
 # SSH接続を許可するCIDRブロック
 variable "allowed_ssh_cidrs" {
   description = "SSH接続を許可するCIDRブロックのリスト"
   type        = list(string)
   default     = ["0.0.0.0/0"]
+}
+
+# IAMマネージドポリシーARN
+variable "iam_policy_arns" {
+  description = "IAMロールにアタッチするマネージドポリシーARNのリスト"
+  type        = list(string)
+  default = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+  ]
 }
 
 # 環境名

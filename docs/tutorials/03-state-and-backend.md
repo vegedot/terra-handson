@@ -241,6 +241,52 @@ Error: Backend configuration changed
 
 ---
 
+## 補足: 実務でのState管理のベストプラクティス
+
+### State管理用S3はTerraformで作らない
+
+本ハンズオンではTerraformでState用S3を作成していますが、実務では**AWS CLIやCloudFormation等で事前に作成**することが推奨されます。
+
+理由は「鶏と卵の問題」です。State保存先のS3をTerraformで管理すると、そのTerraform自体のstateをどこに保存するかという循環が発生します。
+
+### CI/CDパイプラインでbackend設定を強制する
+
+チーム開発では、backend設定をCI/CDパイプライン側で注入し、開発者が個別に設定できないようにする方法が有効です。
+
+**Terraform側は空のbackend宣言のみにする:**
+
+```hcl
+terraform {
+  backend "s3" {}
+}
+```
+
+**CI/CD（GitHub Actions）側で設定を注入する:**
+
+```yaml
+- name: Terraform Init
+  run: |
+    terraform init \
+      -backend-config="bucket=mycompany-terraform-state" \
+      -backend-config="key=${{ github.repository }}/terraform.tfstate" \
+      -backend-config="region=ap-northeast-1" \
+      -backend-config="dynamodb_table=terraform-lock" \
+      -backend-config="encrypt=true"
+```
+
+この方法により以下が実現できます:
+
+- **命名規則の統一**: stateファイルのパスがリポジトリ名から自動生成される
+- **設定ミスの防止**: 開発者がbackend設定を変更できない
+- **apply権限の制御**: CI/CDのみがapplyを実行でき、ローカルからの直接実行を防げる
+
+### その他のアプローチ
+
+- **Terragrunt**: `remote_state` ブロックでbackend設定を一元管理し、各モジュールに自動適用できる
+- **Partial Configuration**: 共通設定を `backend.hcl` にまとめ、`terraform init -backend-config=backend.hcl` で読み込む
+
+---
+
 ## 発展課題
 
 1. **ステートの中身を比較してみよう**: `terraform apply` の前後で `terraform.tfstate` の内容がどう変わるか比較してみましょう。
