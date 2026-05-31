@@ -22,3 +22,23 @@ provider "aws" {
 }
 EOF
 }
+
+# Windowsではシンボリックリンク作成に管理者権限が必要なため、
+# モジュールのソースパスを絶対パスで上書きするオーバーライドファイルを生成する
+locals {
+  modules_path = "${get_repo_root()}/modules"
+}
+
+generate "module_source_override" {
+  path      = "override.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = <<EOF
+module "vpc" {
+  source = "${local.modules_path}/vpc"
+}
+
+module "ec2" {
+  source = "${local.modules_path}/ec2-instance"
+}
+EOF
+}
