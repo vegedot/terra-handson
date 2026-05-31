@@ -7,7 +7,11 @@
       "WebFetch(domain:aws.amazon.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(terraform init:*)",
-      "Bash(terraform validate:*)"
+      "Bash(terraform validate:*)",
+      "Bash(gh repo list --limit 30)",
+      "Bash(where gh)",
+      "Bash(Remove-Item \"c:\\\\work\\\\terra-handson\\\\steps\\\\06-terraform-multi-env\\\\dev.tfvars\", \"c:\\\\work\\\\terra-handson\\\\steps\\\\06-terraform-multi-env\\\\staging.tfvars\", \"c:\\\\work\\\\terra-handson\\\\steps\\\\06-terraform-multi-env\\\\prod.tfvars\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-# Step 6: マルチ環境管理 - dev/staging/prod を効率的に管理する
+﻿# Step 6: マルチ環境管理 - dev/staging/prod を効率的に管理する
 
 [<- 前のステップ: Terragrunt 入門](05-terragrunt-basics.md)
 
@@ -39,6 +39,8 @@ steps/06-terragrunt-multi-env/
 ├── staging/terragrunt.hcl  # staging環境の設定値
 └── prod/terragrunt.hcl     # prod環境の設定値
 ```
+
+> **参考コード**: `steps/06-terraform-multi-env/` に、同等の構成を素の Terraform で実装したコードがあります。サブディレクトリ + `include` の代わりに `dev.tfvars` / `staging.tfvars` / `prod.tfvars` をルート直下に並べるアプローチで、`terraform apply -var-file="dev.tfvars"` のように実行します。
 
 ---
 
@@ -305,6 +307,90 @@ Error: Error applying in .../prod
 **原因**: 環境固有の設定（AMI ID やリソース名の競合など）に問題がある。
 
 **対処法**: 失敗した環境のディレクトリに移動して個別に `terragrunt plan` を実行し、エラーの詳細を確認してください。
+
+---
+
+## Terraform 単体でのマルチ環境管理との比較
+
+Terragrunt を使わずに同じことを実現しようとすると、大きく 2 つのアプローチがあります。それぞれの参考コードは以下に格納しています:
+
+- `steps/06-terraform-multi-env/` … 単一ルートモジュール + `.tfvars` ファイル構成
+- `steps/06-terraform-multi-env-devide/` … 環境ごとにディレクトリを分ける構成
+
+### 構成① 単一ルートモジュール + `.tfvars`（`06-terraform-multi-env`）
+
+```
+06-terraform-multi-env/
+├── main.tf          # 全環境共通の Terraform コード
+├── variables.tf
+├── outputs.tf
+├── provider.tf
+├── dev.tfvars       # dev環境の変数値
+├── staging.tfvars   # staging環境の変数値
+└── prod.tfvars      # prod環境の変数値
+```
+
+**実行方法:**
+
+```bash
+terraform apply -var-file="dev.tfvars"
+terraform apply -var-file="staging.tfvars"
+terraform apply -var-file="prod.tfvars"
+```
+
+> **注意**: `dev.tfvars` / `staging.tfvars` / `prod.tfvars` はルート直下にあっても **自動読み込みされない**。
+> `-var-file` を省略すると対話的に変数入力を求められる。必ず明示すること。
+
+**課題:**
+
+| 課題 | 内容 |
+|------|------|
+| ステート混在リスク | `-var-file` を切り替えても state は同じファイルを参照するため、環境ごとに backend を分離する必要がある |
+| run-all がない | 複数環境への一括適用はスクリプトか CI/CD マトリックスジョブで代替するしかない |
+| 依存順序制御なし | スクリプトは単純な直列実行のみで、モジュール間の依存を解決できない |
+
+### 構成② 環境ごとのディレクトリ分割（`-devide` 構成）
+
+```
+06-terraform-multi-env-devide/
+├── dev/
+│   ├── main.tf        ← staging・prod と同一内容（重複）
+│   ├── provider.tf    ← 全環境で重複
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── terraform.tfvars
+├── staging/
+│   └── （同上）
+└── prod/
+    └── （同上）
+```
+
+**実行方法:**
+
+```bash
+cd dev && terraform init && terraform apply
+cd ../staging && terraform init && terraform apply
+```
+
+**課題:**
+
+| 課題 | 内容 |
+|------|------|
+| コードの重複 | `main.tf` / `provider.tf` が全環境でほぼ同一（DRY 原則に反する） |
+| 変更の伝播コスト | モジュール呼び出しを修正する場合、全環境ディレクトリを修正する必要がある |
+| run-all がない | 各ディレクトリに cd して個別実行するか、スクリプトが必要 |
+| 依存順序制御なし | 構成① と同様 |
+
+### 3 構成の比較まとめ
+
+| 比較項目 | Terragrunt | 構成①（`.tfvars`） | 構成②（ディレクトリ分割） |
+|---------|-----------|------------------|------------------------|
+| Terraform コードの重複 | なし（`source = "../"` で共有） | なし | **あり** |
+| プロバイダ設定の重複 | なし（`include` + `generate`） | なし | **あり** |
+| ステートの分離 | 自動（ディレクトリごと） | **要 backend 分離** | 自動（ディレクトリごと） |
+| 全環境一括適用 | `run-all apply`（1コマンド） | **標準機能なし** | **標準機能なし** |
+| 依存順序の自動解決 | `dependency` + `run-all` | **なし** | **なし** |
+| 環境の誤適用リスク | 起きない | `-var-file` 指定漏れで起きうる | 起きない |
 
 ---
 
